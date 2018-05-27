@@ -1,12 +1,12 @@
-
-package org.apache.spark.sql.simba.examples
-
-import org.apache.spark.sql.simba.SimbaSession
+import org.apache.spark.sql.simba.examples.BasicSpatialOps.PointData
+import org.apache.spark.sql.simba.{Dataset, SimbaSession}
+import org.apache.spark.sql.simba.index.{RTreeType, TreapType}
 
 /**
-  * Created by dongx on 3/7/2017.
+  * Created by tomasztkaczyk on 27.05.18.
   */
-object NewYorkExample {
+object NY_Example {
+
   case class PointData(x: Double, y: Double, z: Double, other: String)
 
   def main(args: Array[String]): Unit = {
@@ -18,31 +18,68 @@ object NewYorkExample {
       .config("simba.join.partitions", "20")
       .getOrCreate()
 
-    runRangeQuery(simbaSession)
-    runKnnQuery(simbaSession)
-    runJoinQUery(simbaSession)
+    loadSampleData(simbaSession, "trip_10000")
+    //runRangeQuery(simbaSession)
+    //runKnnQuery(simbaSession)
+    //runJoinQUery(simbaSession)
     simbaSession.stop()
+  }
+
+  private def loadSampleData(simba: SimbaSession, file_name: String): Unit = {
+    import scala.io
+    val bufferedSource = io.Source.fromFile("./" + file_name + ".csv")
+    println(bufferedSource)
+    val AirportPassenger = PointData(40.772063, -73.872846,1.0, "Test")
+    var ctr = 0;
+    var taxis = Seq()
+    for (line <- bufferedSource.getLines) {
+      val cols = line.split(",").map(_.trim)
+      // do whatever you want with the columns here
+      if (ctr > 0){
+        val len =  cols.length
+        var dropOffLong = cols(len-2)
+        var dropOffLat = cols(len-1)
+
+        val P = PointData(dropOffLat.toDouble,dropOffLat.toDouble,1.0,"taxi"+ctr.toString)
+
+        println(s"${cols(len-4)}|${cols(len-3)}|${cols(len-2)}|${cols(len-1)}")
+        println(P.toString)
+
+      }
+
+      ctr = ctr +1;
+    };
+
+
+
+    import simba.simbaImplicits._
+    //caseClassDS.range(Array("x", "y"), Array(1.0, 1.0), Array(3.0, 3.0)).show(10)
+
+
+
   }
 
   private def runKnnQuery(simba: SimbaSession): Unit = {
 
     import simba.implicits._
-    val caseClassDS = Seq(PointData(1.0, 1.0, 3.0, "1"),  PointData(2.0, 2.0, 3.0, "2"), PointData(2.0, 2.0, 3.0, "3"),
-      PointData(2.0, 2.0, 3.0, "4"),PointData(3.0, 3.0, 3.0, "5"),PointData(4.0, 4.0, 3.0, "6")).toDS()
+
+
+    val caseClassDS = Seq(PointData(1.0, 1.0, 3.0, "1"), PointData(2.0, 2.0, 3.0, "2"), PointData(2.0, 2.0, 3.0, "3"),
+      PointData(2.0, 2.0, 3.0, "4"), PointData(3.0, 3.0, 3.0, "5"), PointData(4.0, 4.0, 3.0, "6")).toDS()
 
     import simba.simbaImplicits._
-    caseClassDS.knn(Array("x", "y"),Array(1.0, 1.0),4).show(4)
+    caseClassDS.knn(Array("x", "y"), Array(1.0, 1.0), 4).show(4)
 
   }
 
   private def runRangeQuery(simba: SimbaSession): Unit = {
 
     import simba.implicits._
-    val caseClassDS = Seq(PointData(1.0, 1.0, 3.0, "1"),  PointData(2.0, 2.0, 3.0, "2"), PointData(2.0, 2.0, 3.0, "3"),
-      PointData(2.0, 2.0, 3.0, "4"),PointData(3.0, 3.0, 3.0, "5"),PointData(4.0, 4.0, 3.0, "6")).toDS()
+    val caseClassDS = Seq(PointData(1.0, 1.0, 3.0, "1"), PointData(2.0, 2.0, 3.0, "2"), PointData(2.0, 2.0, 3.0, "3"),
+      PointData(2.0, 2.0, 3.0, "4"), PointData(3.0, 3.0, 3.0, "5"), PointData(4.0, 4.0, 3.0, "6")).toDS()
 
     import simba.simbaImplicits._
-    caseClassDS.range(Array("x", "y"),Array(1.0, 1.0),Array(3.0, 3.0)).show(10)
+    caseClassDS.range(Array("x", "y"), Array(1.0, 1.0), Array(3.0, 3.0)).show(10)
 
   }
 
@@ -55,9 +92,10 @@ object NewYorkExample {
 
     import simba.simbaImplicits._
 
-    DS1.knnJoin(DS2, Array("x", "y"),Array("x", "y"), 3).show()
+    DS1.knnJoin(DS2, Array("x", "y"), Array("x", "y"), 3).show()
 
-    DS1.distanceJoin(DS2, Array("x", "y"),Array("x", "y"), 3).show()
+    DS1.distanceJoin(DS2, Array("x", "y"), Array("x", "y"), 3).show()
 
   }
+
 }
