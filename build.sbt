@@ -11,3 +11,4 @@ libraryDependencies ++= {
     "org.apache.spark" %% "spark-sql" % sparkVer
   )
 }
+
